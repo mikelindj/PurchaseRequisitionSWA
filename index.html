@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchase Requisition Form</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -13,14 +12,9 @@
             <h1>Purchase Requisition Form</h1>
             <p class="subtitle">Please use this form for the processing of all purchases up to a total value of $6000</p>
             <p class="note">Purchases above $6000 require ITQ of at least 7 working days for submissions, and a minimum of 3 quotes. Please refer to ITQ processes.</p>
-            <div id="auth-section">
-                <button id="login-btn" class="btn btn-primary">Sign In</button>
-                <button id="logout-btn" class="btn btn-secondary" style="display: none;">Sign Out</button>
-                <span id="user-info" style="display: none;"></span>
-            </div>
         </header>
 
-        <main id="form-container" style="display: none;">
+        <main id="form-container">
             <form id="purchase-form">
                 <section class="form-section">
                     <h2>Section 1: Submission Details</h2>
@@ -97,7 +91,6 @@
                             name="documents" 
                             multiple 
                             accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpg,.jpeg,.png,.gif,.mp4,.mov,.mp3,.wav"
-                            required
                         />
                         <small>
                             At least 1 document for Reimbursements; At least 1 quote for <$1000; At least 2 quotations for $1001-6000<br>

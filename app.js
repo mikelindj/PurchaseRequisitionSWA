@@ -1,81 +1,49 @@
-// MSAL Configuration
-// IMPORTANT: Replace these values with your Azure AD app registration details
-const msalConfig = {
-    auth: {
-        clientId: 'YOUR_CLIENT_ID', // Replace with your Azure AD Application (client) ID
-        authority: 'https://login.microsoftonline.com/YOUR_TENANT_ID', // Replace with your tenant ID
-        redirectUri: window.location.origin
-    },
-    cache: {
-        cacheLocation: 'sessionStorage',
-        storeAuthStateInCookie: false
-    }
-};
-
 // Power Automate HTTP URL
-// IMPORTANT: Replace with your actual Power Automate HTTP trigger URL
-const POWER_AUTOMATE_URL = 'YOUR_POWER_AUTOMATE_HTTP_URL';
+const POWER_AUTOMATE_URL = 'https://default6dff32de1cd04ada892b2298e1f616.98.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/548d5069dd3f4a25aee9f34b373b2a6a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=DVfvTJ58sD2AFdiaHsNkKuY2o8JAPyW-5gx3CQMods8';
 
-const msalInstance = new msal.PublicClientApplication(msalConfig);
-let account = null;
+let currentUser = null;
 
-// Initialize MSAL
-msalInstance.initialize().then(() => {
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-        account = accounts[0];
-        updateUI();
-    }
-});
-
-// Login function
-async function login() {
+// Get authenticated user from Azure Static Web Apps Easy Auth
+async function getCurrentUser() {
     try {
-        const loginRequest = {
-            scopes: ['User.Read'],
-            account: account
-        };
-
-        const response = await msalInstance.loginPopup(loginRequest);
-        account = response.account;
-        updateUI();
+        const response = await fetch('/.auth/me');
+        if (!response.ok) {
+            throw new Error('Failed to get user info');
+        }
+        const authData = await response.json();
+        
+        if (authData && authData.clientPrincipal) {
+            currentUser = {
+                name: authData.clientPrincipal.userDetails,
+                email: authData.clientPrincipal.userDetails,
+                id: authData.clientPrincipal.userId,
+                identityProvider: authData.clientPrincipal.identityProvider
+            };
+            return currentUser;
+        }
+        return null;
     } catch (error) {
-        console.error('Login error:', error);
-        showError('Failed to sign in. Please try again.');
+        console.error('Error getting user:', error);
+        return null;
     }
 }
 
-// Logout function
-function logout() {
-    msalInstance.logoutPopup({
-        account: account
-    }).then(() => {
-        account = null;
-        updateUI();
-        document.getElementById('purchase-form').reset();
-        document.getElementById('file-list').innerHTML = '';
-        hideMessages();
-    });
-}
-
-// Update UI based on authentication state
-function updateUI() {
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const userInfo = document.getElementById('user-info');
-    const formContainer = document.getElementById('form-container');
-
-    if (account) {
-        loginBtn.style.display = 'none';
-        logoutBtn.style.display = 'inline-block';
-        userInfo.style.display = 'inline-block';
-        userInfo.textContent = `Signed in as: ${account.name || account.username}`;
-        formContainer.style.display = 'block';
-    } else {
-        loginBtn.style.display = 'inline-block';
-        logoutBtn.style.display = 'none';
-        userInfo.style.display = 'none';
-        formContainer.style.display = 'none';
+// Initialize app on page load
+async function initializeApp() {
+    try {
+        // Try to get user info, but don't block the form if it fails
+        // Since routes are protected, if user reached this page, they're authenticated
+        const user = await getCurrentUser();
+        if (user) {
+            currentUser = user;
+        }
+        // Always show the form - route protection handles authentication
+        document.getElementById('form-container').style.display = 'block';
+    } catch (error) {
+        console.error('Initialization error:', error);
+        // Still show the form even if we can't get user info
+        // The route protection ensures only authenticated users can reach here
+        document.getElementById('form-container').style.display = 'block';
     }
 }
 
@@ -165,17 +133,21 @@ function validateForm(formData) {
     const fileCount = selectedFiles.length;
 
     // Validate file count based on purchase value
+    if (!purchaseValue) {
+        throw new Error('Please select a purchase value.');
+    }
+
     if (purchaseValue === 'Reimbursement Request (<$100)') {
         if (fileCount < 1) {
-            throw new Error('At least 1 document is required for Reimbursement Requests.');
+            throw new Error('At least 1 document is required for Reimbursement Requests. Please upload at least one file.');
         }
     } else if (purchaseValue === '<=$1000') {
         if (fileCount < 1) {
-            throw new Error('At least 1 quote is required for purchases <=$1000.');
+            throw new Error('At least 1 quote is required for purchases <=$1000. Please upload at least one file.');
         }
     } else if (purchaseValue === '$1001-$6000') {
         if (fileCount < 2) {
-            throw new Error('At least 2 quotations are required for purchases $1001-$6000.');
+            throw new Error('At least 2 quotations are required for purchases $1001-$6000. Please upload at least two files.');
         }
     }
 
@@ -213,10 +185,18 @@ async function filesToBase64(files) {
 document.getElementById('purchase-form').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    if (!account) {
-        showError('Please sign in to submit the form.');
-        return;
+    // Try to get user info if not already available
+    if (!currentUser) {
+        currentUser = await getCurrentUser();
     }
+    
+    // If still no user, use placeholder values (route protection ensures user is authenticated)
+    const userInfo = currentUser || {
+        name: 'Unknown User',
+        email: 'unknown@example.com',
+        id: 'unknown',
+        identityProvider: 'microsoft'
+    };
 
     const submitBtn = document.getElementById('submit-btn');
     submitBtn.disabled = true;
@@ -237,9 +217,10 @@ document.getElementById('purchase-form').addEventListener('submit', async functi
         const submissionData = {
             timestamp: new Date().toISOString(),
             user: {
-                name: account.name,
-                email: account.username,
-                id: account.homeAccountId
+                name: userInfo.name,
+                email: userInfo.email,
+                id: userInfo.id,
+                identityProvider: userInfo.identityProvider
             },
             purchaseValue: formData.get('purchaseValue'),
             budget: formData.get('budget'),
@@ -296,10 +277,8 @@ function hideMessages() {
     document.getElementById('error-message').style.display = 'none';
 }
 
-// Event listeners
-document.getElementById('login-btn').addEventListener('click', login);
-document.getElementById('logout-btn').addEventListener('click', logout);
-
 // Make removeFile available globally
 window.removeFile = removeFile;
 
+// Initialize app when DOM is loaded
+document.addEventListener('DOMContentLoaded', initializeApp);

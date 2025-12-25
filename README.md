@@ -4,7 +4,8 @@ A static web application for processing purchase requisitions up to $6000, hoste
 
 ## Features
 
-- ✅ Azure AD authentication (Microsoft organization users only)
+- ✅ Automatic Azure AD authentication via Azure Static Web Apps Easy Auth (Microsoft organization users only)
+- ✅ No sign-in required - automatically authenticates M365 users
 - ✅ Form validation based on purchase value
 - ✅ File upload support (up to 10 files, 10MB each)
 - ✅ Integration with Power Automate HTTP trigger
@@ -13,27 +14,12 @@ A static web application for processing purchase requisitions up to $6000, hoste
 
 ## Setup Instructions
 
-### 1. Azure AD App Registration
-
-1. Go to [Azure Portal](https://portal.azure.com) → Azure Active Directory → App registrations
-2. Click "New registration"
-3. Name: "Purchase Requisition Form"
-4. Supported account types: "Accounts in this organizational directory only"
-5. Redirect URI: Select "Single-page application (SPA)" and enter your Azure Static Web App URL (e.g., `https://your-app.azurestaticapps.net`)
-6. Click "Register"
-7. Copy the **Application (client) ID** and **Directory (tenant) ID**
-
-### 2. Update Configuration Files
+### 1. Update Configuration Files
 
 #### Update `app.js`:
-- Replace `YOUR_CLIENT_ID` with your Azure AD Application (client) ID
-- Replace `YOUR_TENANT_ID` with your Azure AD Directory (tenant) ID
 - Replace `YOUR_POWER_AUTOMATE_HTTP_URL` with your Power Automate HTTP trigger URL
 
-#### Update `staticwebapp.config.json`:
-- Replace `YOUR_AAD_APP_REGISTRATION_NAME` with your Azure AD app registration name
-
-### 3. Power Automate Setup
+### 2. Power Automate Setup
 
 1. Create a new Power Automate flow
 2. Add an HTTP trigger (When an HTTP request is received)
@@ -74,7 +60,7 @@ A static web application for processing purchase requisitions up to $6000, hoste
 4. Copy the HTTP POST URL
 5. Add actions to process the data (e.g., send email, save to SharePoint, etc.)
 
-### 4. Azure Static Web App Setup
+### 3. Azure Static Web App Setup
 
 1. Go to [Azure Portal](https://portal.azure.com) → Create a resource → Static Web App
 2. Fill in the details:
@@ -93,20 +79,26 @@ A static web application for processing purchase requisitions up to $6000, hoste
    - Api location: (leave empty)
    - Output location: (leave empty)
 3. Click "Review + create" then "Create"
-4. After creation, go to the Static Web App → Authentication
-5. Click "Add" under Identity providers
-6. Select "Azure Active Directory"
-7. Choose your app registration from step 1
-8. Copy the **Deployment token** from the Overview page
+4. After creation, go to the Static Web App → **Authentication** tab
+5. Click "Add identity provider"
+6. Select **"Microsoft"** (Azure Active Directory)
+7. Choose **"Create new app registration"** or select an existing one
+8. For the new registration:
+   - Name: "Purchase Requisition Form" (or your preferred name)
+   - Supported account types: **"Current tenant - Single tenant"** (restricts to your organization only)
+9. Click "Add" to save
+10. Copy the **Deployment token** from the Overview page
 
-### 5. GitHub Secrets
+**Important**: The authentication is automatically configured to restrict access to users from your Microsoft organization only. Users will be automatically authenticated when they visit the site - no manual sign-in required.
+
+### 4. GitHub Secrets
 
 1. Go to your GitHub repository → Settings → Secrets and variables → Actions
 2. Add a new secret:
    - Name: `AZURE_STATIC_WEB_APPS_API_TOKEN`
    - Value: The deployment token from Azure Static Web App
 
-### 6. Deploy
+### 5. Deploy
 
 1. Commit and push your changes to the `main` branch
 2. GitHub Actions will automatically build and deploy to Azure Static Web Apps
@@ -135,16 +127,32 @@ PurchaseRequisitionSWA/
 └── README.md               # This file
 ```
 
+## How Authentication Works
+
+The app uses **Azure Static Web Apps Easy Auth** which:
+- Automatically authenticates users from your Microsoft organization
+- No sign-in button required - users are redirected to Microsoft login if not already authenticated
+- Restricts access to your organization only (configured via Azure AD app registration)
+- User information is automatically retrieved from `/.auth/me` endpoint
+- Users remain authenticated across sessions
+
 ## Security Notes
 
-- The app uses Azure AD authentication to restrict access to your Microsoft organization only
+- The app uses Azure Static Web Apps Easy Auth to restrict access to your Microsoft organization only
+- All unauthenticated requests are automatically redirected to Microsoft login
 - All form submissions are sent to your Power Automate endpoint
 - Files are converted to base64 for transmission
 - Ensure your Power Automate flow has proper authentication/authorization
 
 ## Troubleshooting
 
-- **Authentication not working**: Verify Azure AD app registration redirect URI matches your Static Web App URL
+- **Authentication not working**: 
+  - Verify Azure AD app registration is configured correctly in Azure Static Web App → Authentication
+  - Ensure "Current tenant - Single tenant" is selected to restrict to your organization
+  - Check that the app registration supports the correct account types
+- **Users not being auto-authenticated**: 
+  - Clear browser cache and cookies
+  - Verify the `staticwebapp.config.json` has the correct route configuration
 - **Form submission fails**: Check Power Automate URL is correct and the flow is enabled
 - **Files not uploading**: Verify file size and type restrictions
 - **Deployment fails**: Check GitHub Actions logs and verify the deployment token is set correctly

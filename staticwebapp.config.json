@@ -1,1 +1,19 @@
-{"navigationFallback":{"rewrite":"/index.html","exclude":["/images/*.{png,jpg,gif}","/css/*"]},"auth":{"rolesSource":"/api/getAuthRoles","identityProviders":{"azureActiveDirectory":{"registration":{"openIdIssuer":"https://login.microsoftonline.com/6dff32de-1cd0-4ada-892b-2298e1f61698","clientIdSettingName":"AZURE_CLIENT_ID","clientSecretSettingName":"AZURE_CLIENT_SECRET_APP_SETTING_NAME"}}}}}
+{
+  "routes": [
+    {
+      "route": "/*",
+      "allowedRoles": ["authenticated"]
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/images/*.{png,jpg,gif}", "/css/*"]
+  },
+  "responseOverrides": {
+    "401": {
+      "statusCode": 302,
+      "redirect": "/.auth/login/microsoft"
+    }
+  }
+}
+
