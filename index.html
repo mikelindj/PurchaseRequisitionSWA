@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Requisition Form</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Purchase Requisition Form</h1>
+            <p class="subtitle">Please use this form for the processing of all purchases up to a total value of $6000</p>
+            <p class="note">Purchases above $6000 require ITQ of at least 7 working days for submissions, and a minimum of 3 quotes. Please refer to ITQ processes.</p>
+            <div id="auth-section">
+                <button id="login-btn" class="btn btn-primary">Sign In</button>
+                <button id="logout-btn" class="btn btn-secondary" style="display: none;">Sign Out</button>
+                <span id="user-info" style="display: none;"></span>
+            </div>
+        </header>
+
+        <main id="form-container" style="display: none;">
+            <form id="purchase-form">
+                <section class="form-section">
+                    <h2>Section 1: Submission Details</h2>
+
+                    <div class="form-group">
+                        <label for="purchase-value">
+                            1. What is the value of this purchase?
+                            <span class="required">*</span>
+                        </label>
+                        <select id="purchase-value" name="purchaseValue" required>
+                            <option value="">Select your answer</option>
+                            <option value="Reimbursement Request (<$100)">Reimbursement Request (<$100)</option>
+                            <option value="<=$1000"><=$1000</option>
+                            <option value="$1001-$6000">$1001-$6000</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="budget">
+                            2. Which budget will this item be expensed from?
+                            <span class="required">*</span>
+                        </label>
+                        <select id="budget" name="budget" required>
+                            <option value="">Select your answer</option>
+                            <option value="Operations">Operations</option>
+                            <option value="IT">IT</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="HR">HR</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="items">
+                            3. List down the items separately with a description of Product/Service to be purchased and quantity
+                            <span class="required">*</span>
+                        </label>
+                        <textarea 
+                            id="items" 
+                            name="items" 
+                            rows="4" 
+                            placeholder="e.g. 6 x AAA batteries, 10 x AA batteries"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="total-cost">
+                            4. Total Cost
+                            <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="number" 
+                            id="total-cost" 
+                            name="totalCost" 
+                            step="0.01" 
+                            min="0" 
+                            max="6000"
+                            placeholder="e.g. 16.00"
+                            required
+                        />
+                        <small>Please enter a number less than 6001</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="documents">
+                            5. Upload Receipts / Quotations / Supporting Documents
+                            <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="file" 
+                            id="documents" 
+                            name="documents" 
+                            multiple 
+                            accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpg,.jpeg,.png,.gif,.mp4,.mov,.mp3,.wav"
+                            required
+                        />
+                        <small>
+                            At least 1 document for Reimbursements; At least 1 quote for <$1000; At least 2 quotations for $1001-6000<br>
+                            File number limit: 10 | Single file size limit: 10MB<br>
+                            Allowed file types: Word, Excel, PPT, PDF, Image, Video, Audio
+                        </small>
+                        <div id="file-list"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="remarks">
+                            6. Remarks (Optional)
+                        </label>
+                        <textarea 
+                            id="remarks" 
+                            name="remarks" 
+                            rows="3"
+                            placeholder="Enter your answer"
+                        ></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="submit-btn">Submit</button>
+                        <button type="reset" class="btn btn-secondary">Reset</button>
+                    </div>
+                </section>
+            </form>
+
+            <div id="success-message" class="message success" style="display: none;">
+                <h3>Success!</h3>
+                <p>Your purchase requisition has been submitted successfully.</p>
+            </div>
+
+            <div id="error-message" class="message error" style="display: none;">
+                <h3>Error</h3>
+                <p id="error-text"></p>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
